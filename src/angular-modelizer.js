@@ -219,7 +219,7 @@
             if (value instanceof modelClass) {
               _value = value;
             } else if (_.isObject(value)) {
-              _value = modelClass.new(value, options);
+              _value = modelClass.$new(value, options);
             }
           }
         });
@@ -254,14 +254,14 @@
           configurable: true,
           get: function () {
             if (!_value) {
-              _value = modelClass.newCollection(null, options);
+              _value = modelClass.$newCollection(null, options);
             }
 
             return _value;
           },
           set: function (value) {
             if (!_value) {
-              _value = modelClass.newCollection(value, options);
+              _value = modelClass.$newCollection(value, options);
             } else {
               _value.reset(value);
             }
