@@ -460,12 +460,16 @@
         _error('You have to provide the model name to define a new model');
       }
 
-      if (modelClassCache.byModelName(modelName)) {
+      if (modelClassCache.byModelName[modelName]) {
         _error('The model name should be unique. It seems that you already have the model with name "' + modelName + '"');
       }
 
       if (modelName && !collectionName) collectionName = stringHelper.pluralize(modelName);
 
+      if (modelClassCache.byCollectionName[collectionName]) {
+        _error('The collection name should be unique. It seems that you ' +
+               'already have the model with collection name "' + collectionName + '"');
+      }
 
       // Build model class/type
 
