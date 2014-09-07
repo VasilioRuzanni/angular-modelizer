@@ -460,7 +460,7 @@
         _error('You have to provide the model name to define a new model');
       }
 
-      if (modelClassCache.byModelName(modelName)) {
+      if (modelClassCache.byModelName[modelName]) {
         _error('The model name should be unique. It seems that you already have the model with name "' + modelName + '"');
       }
 
