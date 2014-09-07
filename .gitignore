@@ -1,0 +1,12 @@
+.DS_Store
+.bower-*
+.sass-cache
+.idea
+*.log
+*.sublime-project
+.nodemonignore
+bower_components
+node_modules
+lib
+logs
+npm-debug.log

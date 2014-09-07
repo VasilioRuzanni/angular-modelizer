@@ -1,0 +1,33 @@
+{
+  "name": "angular-modelizer",
+  "version": "0.1.0",
+  "description": "Lightweight and simple models for AngularJS",
+  "main": "./dist/angular-modelizer.min.js",
+  "filename": "angular-modelizer.min.js",
+  "homepage": "https://github.com/VasilioRuzanni/angular-modelizer",
+  "author": "Vasilio Ruzanni <vasilioruzanni@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/VasilioRuzanni/angular-modelizer.git"
+  },
+  "engines": {
+    "node": " >= 0.10"
+  },
+  "devDependencies": {
+    "gulp": "~3.8.7",
+    "gulp-concat": "^2.2.0",
+    "gulp-jshint": "^1.5.5",
+    "gulp-load-plugins": "^0.5.1",
+    "gulp-plumber": "^0.6.1",
+    "gulp-rename": "^1.2.0",
+    "gulp-run": "^1.6.3",
+    "gulp-size": "^0.3.1",
+    "gulp-uglify": "^0.3.0",
+    "gulp-util": "^3.0.0",
+    "gulp-watch": "^0.6.4",
+    "jshint-stylish": "^0.2.0",
+    "lazypipe": "^0.2.1",
+    "run-sequence": "^0.3.6"
+  }
+}
