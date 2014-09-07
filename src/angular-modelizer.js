@@ -1835,7 +1835,8 @@
             // Check if should be sorted and splice in new models.
             if (toAdd.length || (order && order.length)) {
               if (sortable) sort = true;
-              if (at) {
+              if (at !== null) {
+                if (!at) at = 0;
                 for (i = 0, length = toAdd.length; i < length; i++) {
                   this.models.splice(at + i, 0, toAdd[i]);
                 }
