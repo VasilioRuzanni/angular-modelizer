@@ -547,7 +547,7 @@
 
       // Make modelClassMeta available from modelClass itself
       // and model prototype
-      extendedModelClass._modelClassMeta = modelProto._modelClassMeta = modelClassMeta;
+      extendedModelClass._modelClassMeta = extendedModelClass.prototype._modelClassMeta = modelClassMeta;
 
       return extendedModelClass;
     },
@@ -2105,7 +2105,10 @@
         modelize.$request = $request;
 
         // For testing/stubbing purposes
-        modelize.modelizeMetaResolver = modelizeMetaResolver;
+        modelize.internal = {
+          modelizeMetaResolver: modelizeMetaResolver,
+          modelClassCache: modelClassCache
+        };
 
         // Shortcut to default Model.extend(...) for convenience
         modelize.defineModel = function (modelName, modelDefinition) {
