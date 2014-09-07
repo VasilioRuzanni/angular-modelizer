@@ -67,20 +67,27 @@ angular.module('app', ['angular-modelizer']);
 This step is completely optional unless some rich `model` or `collection` attributes are needed
 
 ```javascript
-angular.module('app').factory('Post', ['modelize', function (modelize) {
-  
-  // Note: `modelize.defineModel(...)` is an alias for `modelize.Model.extend(...)`
+angular.module('app')
 
-  return modelize.defineModel('post', {
-    baseUrl: '/posts',
+  .run(['modelize', function (modelize) {
+    // Note: `modelize.defineModel(...)` is an alias for `modelize.Model.extend(...)`
 
-    // `id` is assumed to be created by the server
-    name: '',
-    title: 'New post', // `New post` becomes the default value
-    publishedOn: modelize.attr.date(),
-    author: modelize.attr.model({ modelClass: modelize('user') }),
-    comments: modelize.attr.collection({ modelClass: modelize('comment') })
-  });
+    modelize.defineModel('post', {
+      baseUrl: '/posts',
+
+      // `id` is assumed to be created by the server
+      name: '',
+      title: 'New post', // `New post` becomes the default value
+      publishedOn: modelize.attr.date(),
+      author: modelize.attr.model({ modelClass: modelize('user') }),
+      comments: modelize.attr.collection({ modelClass: modelize('comment') })
+    });
+  }])  
+
+  // Expose as an Angular service for convenience
+  .factory('Post', ['modelize', function (modelize) {
+    return modelize('post').$modelClass;
+  }]);
 
 }]);
 ```
@@ -169,6 +176,7 @@ Modelizer is a very simple thing. It provides the default `Model` class which is
   - **`modelize.attr.date(options)`** to define a property of `Date` type. While you could use just regular property for that, using this attribute helper ensures that the property will always have the `Date` type.
   - Provide optional `modelClass: SomeModelClass` option to specify what model class that attribute should have. Only applicable to `attr.model` and `attr.collection`. If not specified, the default `Model` is set as attribute `modelClass`.
   - Properties defined with `modelize.attr` are lazily initialized. Objects and arrays of objects of particular type are only created when requested
+  - **When defining model attributes as `modelize.attr.model()` or `modelize.attr.collection()` make sure the dependency models are defined already.** Thats why its worth calling `modelize.defineModel()` or `modelize.Model.extend()` inside Angular `run` blocks.
 - If your model should have some other attribute as `id`, use `idAttribute` property to define that
 - If you define a value for some attribute, it will become its default value
 - Static model class methods are defined inside special `static` property
@@ -176,33 +184,43 @@ Modelizer is a very simple thing. It provides the default `Model` class which is
 **Code speaks louder than plain English does:**
 ```javascript
 // app/models/post.js
-angular.module('app').factory('Post', ['modelize', function (modelize) {
-  
-  // Note: `modelize.defineModel(...)` is an alias for `modelize.Model.extend(...)`
+angular.module('app')
 
-  return modelize.defineModel('post', {
-    baseUrl: '/posts',
+  .run(['modelize', function (modelize) {
+    // Note: `modelize.defineModel(...)` is an alias for `modelize.Model.extend(...)`
 
-    // `id` is assumed to be created by the server
-    name: '',
-    title: 'New post', // `New post` becomes the default value
-    publishedOn: modelize.attr.date(), // Make sure `publishedOn` is always a Date object
-    author: modelize.attr.model({ modelClass: modelize('user') }), // Define nested model
-    comments: modelize.attr.collection({ modelClass: modelize('comment') }) // Define collection property
-  });
+    return modelize.defineModel('post', {
+      baseUrl: '/posts',
+
+      // `id` is assumed to be created by the server
+      name: '',
+      title: 'New post', // `New post` becomes the default value
+      publishedOn: modelize.attr.date(), // Make sure `publishedOn` is always a Date object
+      author: modelize.attr.model({ modelClass: modelize('user') }), // Define nested model
+      comments: modelize.attr.collection({ modelClass: modelize('comment') }) // Define collection property
+    });
+  }])
+
+  .factory('Post', ['modelize', function (modelize) {
+    return modelize('post').$modelClass;
+  }]);
 
 // app/models/comment.js
-angular.module('app').factory('Comment', ['modelize', function (modelize) {
+angular.module('app')
 
-  return modelize.defineModel('comment', {
-    baseUrl: '/comments',
+ .run(['modelize', function (modelize) {
+    modelize.defineModel('comment', {
+      baseUrl: '/comments',
 
-    // `id` is assumed to be created by the server
-    text: '',
-    author: modelize.attr.model({ modelClass: modelize('user') })
-  });
+      // `id` is assumed to be created by the server
+      text: '',
+      author: modelize.attr.model({ modelClass: modelize('user') })
+    });
+  }])
 
-}]);
+ .factory('Comment', ['modelize', function (modelize) {
+    return modelize('comment').$modelClass;
+  }]);
 ```
 
 
