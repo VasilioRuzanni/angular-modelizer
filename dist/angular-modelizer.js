@@ -183,6 +183,29 @@
     }
   };
 
+
+  // Global model class cache for fast
+  // lookups of model classes when "modelizing"
+  var modelClassCache = {
+    
+    byModelName:      {},
+    byCollectionName: {},
+    byBaseUrl:        {},
+
+    addModelClass: function (modelClass) {
+      if (!modelClass ||  !modelClass._modelClassMeta) return;
+
+      var meta = modelClass._modelClassMeta;
+
+      if (meta.modelName) this.byModelName[meta.modelName] = modelClass;
+      if (meta.collectionName) this.byCollectionName[meta.collectionName] = modelClass;
+      if (modelClass.baseUrl && modelClass !== '/' && !this.byBaseUrl[modelClass.baseUrl]) {
+        this.byBaseUrl[modelClass.baseUrl] = modelClass;
+      }
+    }
+  };
+
+
   // Internal helper (exposed as modelize.attr property)
   // to help define complex attributes in a way similar to Ember.Data DS.attr(...)
   var attrBuilder = {
@@ -198,11 +221,24 @@
        * }
        */
 
-      var modelClass  = attrDefinition.modelClass || defaultModelClass,
-          options     = _.omit(attrDefinition, 'modelClass');
+      var modelClass  = attrDefinition.modelClass,
+          options     = _.omit(attrDefinition, 'modelClass'),
+          isLazyClass = !modelClass || _.isString(modelClass);
 
       var initializerFn = function (obj, propertyName) {
         var _value = null;
+
+        var _modelClass;
+        if (modelClass && isLazyClass) {
+          _modelClass = modelClassCache.byModelName[modelClass] ||
+                        modelClassCache.byModelName[propertyName];
+        } else if (modelClass) {
+          _modelClass = modelClass;
+        }
+
+        if (!_modelClass) _modelClass = defaultModelClass;
+
+        attrDefinition.modelClass = _modelClass;
 
         Object.defineProperty(obj, propertyName, {
           enumerable: true,
@@ -216,10 +252,10 @@
               return;
             }
 
-            if (value instanceof modelClass) {
+            if (value instanceof _modelClass) {
               _value = value;
             } else if (_.isObject(value)) {
-              _value = modelClass.$new(value, options);
+              _value = _modelClass.$new(value, options);
             }
           }
         });
@@ -243,25 +279,38 @@
        * }
        */
 
-      var modelClass = attrDefinition.modelClass || defaultModelClass,
-          options    = _.omit(attrDefinition, 'modelClass');
+      var modelClass  = attrDefinition.modelClass,
+          options     = _.omit(attrDefinition, 'modelClass'),
+          isLazyClass = !modelClass || _.isString(modelClass);
 
       var initializerFn = function (obj, propertyName) {
         var _value = null;
+
+        var _modelClass;
+        if (modelClass && isLazyClass) {
+          _modelClass = modelClassCache.byModelName[modelClass] ||
+                        modelClassCache.byModelName[propertyName];
+        } else if (modelClass) {
+          _modelClass = modelClass;
+        }
+
+        if (!_modelClass) _modelClass = defaultModelClass;
+
+        attrDefinition.modelClass = _modelClass;
 
         Object.defineProperty(obj, propertyName, {
           enumerable: true,
           configurable: true,
           get: function () {
             if (!_value) {
-              _value = modelClass.$newCollection(null, options);
+              _value = _modelClass.$newCollection(null, options);
             }
 
             return _value;
           },
           set: function (value) {
             if (!_value) {
-              _value = modelClass.$newCollection(value, options);
+              _value = _modelClass.$newCollection(value, options);
             } else {
               _value.reset(value);
             }
@@ -561,27 +610,6 @@
         modelClass._modelClassMeta.collectionExtensions, collectionDefinition);
 
       return modelClass;
-    }
-  };
-
-  // Global model class cache for fast
-  // lookups of model classes when "modelizing"
-  var modelClassCache = {
-    
-    byModelName:      {},
-    byCollectionName: {},
-    byBaseUrl:        {},
-
-    addModelClass: function (modelClass) {
-      if (!modelClass ||  !modelClass._modelClassMeta) return;
-
-      var meta = modelClass._modelClassMeta;
-
-      if (meta.modelName) this.byModelName[meta.modelName] = modelClass;
-      if (meta.collectionName) this.byCollectionName[meta.collectionName] = modelClass;
-      if (modelClass.baseUrl && modelClass !== '/' && !this.byBaseUrl[modelClass.baseUrl]) {
-        this.byBaseUrl[modelClass.baseUrl] = modelClass;
-      }
     }
   };
 
