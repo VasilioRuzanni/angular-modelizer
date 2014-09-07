@@ -1334,7 +1334,6 @@
 
               return _this;
             }).catch(function (response) {
-              console.log(response);
               if (response.status === 422 && response.data && _this.parseModelErrors) {
                 _this.clearModelErrors();
                 _this.addModelErrors(_this.parseModelErrors(response.data));
@@ -1763,6 +1762,7 @@
           // Pretty useful for entire collection update in one pass
           // and with high flexibility.
           set: function(models, options) {
+            // TODO: Remove ordering and sorting stuff out of here
             options = _.defaults({}, options, { add: true, remove: true, merge: true });
             if (options.parse) models = this.parse(models, options);
             if (options.initRemoteState !== false) options.initRemoteState = true;
@@ -1835,7 +1835,7 @@
             // Check if should be sorted and splice in new models.
             if (toAdd.length || (order && order.length)) {
               if (sortable) sort = true;
-              if (at !== null) {
+              if (at) {
                 for (i = 0, length = toAdd.length; i < length; i++) {
                   this.models.splice(at + i, 0, toAdd[i]);
                 }
