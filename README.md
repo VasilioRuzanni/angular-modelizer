@@ -79,8 +79,8 @@ angular.module('app')
       name: '',
       title: 'New post', // `New post` becomes the default value
       publishedOn: modelize.attr.date(),
-      author: modelize.attr.model({ modelClass: modelize('user') }),
-      comments: modelize.attr.collection({ modelClass: modelize('comment') })
+      author: modelize.attr.model({ modelClass: 'user' }),
+      comments: modelize.attr.collection({ modelClass: 'comment' })
     });
   }])  
 
@@ -177,6 +177,7 @@ Modelizer is a very simple thing. It provides the default `Model` class which is
   - Provide optional `modelClass: SomeModelClass` option to specify what model class that attribute should have. Only applicable to `attr.model` and `attr.collection`. If not specified, the default `Model` is set as attribute `modelClass`.
   - Properties defined with `modelize.attr` are lazily initialized. Objects and arrays of objects of particular type are only created when requested
   - **When defining model attributes as `modelize.attr.model()` or `modelize.attr.collection()` make sure the dependency models are defined already.** Thats why its worth calling `modelize.defineModel()` or `modelize.Model.extend()` inside Angular `run` blocks.
+  - If string is provided as `modelClass: ...` option to `modelize.attr.model()` or `modelize.attr.collection()` then its **class will be lazily resolved at the time attribute is requested for a first time**.
 - If your model should have some other attribute as `id`, use `idAttribute` property to define that
 - If you define a value for some attribute, it will become its default value
 - Static model class methods are defined inside special `static` property
@@ -196,8 +197,8 @@ angular.module('app')
       name: '',
       title: 'New post', // `New post` becomes the default value
       publishedOn: modelize.attr.date(), // Make sure `publishedOn` is always a Date object
-      author: modelize.attr.model({ modelClass: modelize('user') }), // Define nested model
-      comments: modelize.attr.collection({ modelClass: modelize('comment') }) // Define collection property
+      author: modelize.attr.model({ modelClass: 'user' }), // Define nested model
+      comments: modelize.attr.collection({ modelClass: 'comment' }) // Define collection property
     });
   }])
 
@@ -214,7 +215,7 @@ angular.module('app')
 
       // `id` is assumed to be created by the server
       text: '',
-      author: modelize.attr.model({ modelClass: modelize('user') })
+      author: modelize.attr.model({ modelClass: 'user' })
     });
   }])
 
@@ -470,7 +471,7 @@ can be either:
 modelize.defineModel('post', {
   baseUrl: '/blog/posts',
   comments: modelize.attr.collection({
-    modelClass: modelize('comment'),
+    modelClass: 'comment',
     baseUrl: '/special-comments'
   })
 });
