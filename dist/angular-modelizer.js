@@ -561,7 +561,7 @@
 
       staticProps.urlPrefix = modelDefinition.urlPrefix || undefined;
       staticProps.baseUrl = modelDefinition.baseUrl || undefined;
-      if (!staticProps.baseUrl) staticProps.baseUrl = stringHelper.toDashCase(collectionName);
+      if (!staticProps.baseUrl) staticProps.baseUrl = urlHelper.asUrl(stringHelper.toDashCase(collectionName));
 
 
 
