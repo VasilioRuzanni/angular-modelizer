@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.1
+ * angular-modelizer v0.1.2
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -46,8 +46,16 @@
               dst, key, { get: getter, set: setter, enumerable: true, configurable: true }
             );
           } else {
-            // Otherwise, just do a regular copy
-            dst[key] = obj[key];
+            // Otherwise, just do a full clone
+            if (!_.isObject(obj[key]) || _.isFunction(obj[key])) {
+              dst[key] = obj[key];
+            } else if (_.isArray(obj[key])) {
+              // Deep-clone arrays
+              dst[key] = _.cloneDeep(obj[key]);
+            } else {
+              // Regular object is just extended using "structured clone"
+              dst[key] = _extendWithGetSet({}, obj[key]);
+            }
           }
         }
       }
