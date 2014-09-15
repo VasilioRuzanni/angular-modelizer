@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.2
+ * angular-modelizer v0.1.3
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -30,7 +30,7 @@
   var _extendWithGetSet = function (dst) {
     dst = dst || {};
     angular.forEach(arguments, function (obj) {
-      if (obj !== dst) {
+      if (obj !== dst && _.isObject(obj)) {
         for (var key in obj) {
           var propertyDescriptor = Object.getOwnPropertyDescriptor(obj, key);
 
@@ -1334,10 +1334,14 @@
               this.getAttributes({ includeComputed: false });
 
             var promise = this.$request(reqOptions).then(function (resData) {
-              var serverAttrs = _this.parse(resData, options);
+              // Only update the model if object is returned
+              if (resData && _.isObject(resData)) {
+                var serverAttrs = _this.parse(resData, options);
 
-              // TODO: Probably validate here as well and act accordingly
-              _this.set(serverAttrs);
+                // TODO: Probably validate here as well and act accordingly
+                _this.set(serverAttrs);
+              }
+
               _this._remoteState = _this.serialize(options);
 
               return _this;
