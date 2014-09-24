@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.3
+ * angular-modelizer v0.1.4
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1252,8 +1252,7 @@
           },
 
           clear: function (options) {
-            var attrs = this.getAttributes(_.extend({}, options, { includeComputed: false }));
-            for (var key in attrs) this[key] = undefined;
+            for (var key in this.getAttributes(options)) this[key] = undefined;
           },
 
           // Fetch the model data from the server. If the server's
@@ -1330,8 +1329,12 @@
 
             var reqOptions = _.extend({ method: method, url: url }, options);
             reqOptions.data = method === 'patch' ?
-              this.changedAttributes() :
-              this.getAttributes({ includeComputed: false });
+              this.serialize({ changedOnly: true }) :
+              this.serialize();
+
+            if (this.transformOnSave && _.isFunction(this.transformOnSave)) {
+              reqOptions.data = this.transformOnSave(reqOptions.data, options);
+            }
 
             var promise = this.$request(reqOptions).then(function (resData) {
               // Only update the model if object is returned
@@ -1405,9 +1408,9 @@
           // Get a flattened object containing all the actual
           // attributes values (including getters and computed
           // properties). Useful for JSON serialization.
-          // Provide `includeComputed: false` to exclude
+          // Provide `includeComputed: true` to also include
           // computed properties (either explicitly defined as "computed"
-          // or those having getters only) from resulting object.
+          // or those having getters only) into resulting object.
           getAttributes: function (options) {
             var model     = this,
                 attrs     = {};
@@ -1416,8 +1419,6 @@
             var propNames = _.difference(Object.getOwnPropertyNames(model), _reservedProperties);
 
             options = options || {};
-            if (options.includeComputed !== false) options.includeComputed = true;
-
 
             for (var i = 0; i < propNames.length; i++) {
               var propDesc = Object.getOwnPropertyDescriptor(model, propNames[i]);
@@ -1444,7 +1445,11 @@
           // Note: This method doesn't transform model to JSON,
           // use `toJSON` method for that purpose.
           serialize: function (options) {
-            var modelAttrs = this.getAttributes(options);
+            options = options || {};
+
+            var modelAttrs = options.changedOnly ?
+              this.getChangedAttributes(options) :
+              this.getAttributes(options);
 
             // Leave basic properties and objects arrays as is
             // and appropriately handle nested models and
@@ -1481,27 +1486,28 @@
           },
 
           clone: function (options) {
-            return new this.constructor(this.getAttributes(_.extend({}, options, { includeComputed: false })));
+            return new this.constructor(this.getAttributes(options));
           },
 
           // Take a list of differences between current and other
           // model. Useful to check the difference between
           // model attributes when it was loaded from server
           // and current attributes (e.g., in `patch` scenarios).
-          diff: function (attrs) {
-            var diff = {};
+          diff: function (attrs, options) {
+            var diff = {},
+                thisAttrs = this.getAttributes(options);
 
             for (var attr in attrs) {
               var val = attrs[attr];
-              if (!_.isEqual(this[attr], val)) {
-                diff[attr] = { currentValue: this[attr], comparedValue: val };
+              if (!_.isEqual(thisAttrs[attr], val)) {
+                diff[attr] = { currentValue: thisAttrs[attr], comparedValue: val };
               }
             }
 
             return diff;
           },
 
-          changedAttributes: function () {
+          getChangedAttributes: function () {
             var attrs = {};
 
             if (this._remoteState) {
