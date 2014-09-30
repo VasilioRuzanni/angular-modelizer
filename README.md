@@ -443,7 +443,7 @@ object comes into play.
 - `modelize.many()` and `modelize()` return the `Modelizer` instance with
   `collectionModelizer` methods mixed in and is intended to work in the context
   of a collection of items (e.g. has methods like `query()`, `get()`, `all()`, etc)
-- Resolved model class is exosed as a `$modelClass` property on `Modelizer`
+- Resolved model class is exposed as a `$modelClass` property on `Modelizer`
 - If no model class is found in `modelClassCache` by `Modelizer`, it falls back to
   default `modelize.Model`
 - **Aside from resolving the model class, `Modelizer` also defines the `baseUrl`
@@ -754,7 +754,7 @@ Deleting models is extraordinary simple. Again, both model instance and
 - By default, when the model is "destroyed", it is removed from collections
   that contain it.
 - If the model was never saved, no HTTP request is issued and model is
-  just removed from collecitons.
+  just removed from collections.
 - Provide `wait: true` option to wait until HTTP request completes
   before removing the model from collections.
 - When the model is destroyed, its `$destroyed` property value becomes `true`.
@@ -808,6 +808,7 @@ post.$destroyed; // true
 
 Model has the following methods to assist serialization:
 - `getAttributes()`
+- `getChangedAttributes()`
 - `serialize()`
 - `toJSON()`
 
@@ -843,7 +844,7 @@ var _reservedProperties = [
 ];
 ```
 
-There is also a `changedAttributes()` method that only returns
+There is also a `getChangedAttributes()` method that only returns
 attributes that are changed since the last known server
 state. Used to perform `PATCH` operations. Uses `diff` method
 internally (see next section).

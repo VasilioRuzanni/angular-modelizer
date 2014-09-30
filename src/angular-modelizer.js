@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.4
+ * angular-modelizer v0.1.5
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -63,6 +63,17 @@
 
     return dst;
   };
+
+  var _isEmptyObject = function (obj) {
+    if (!obj || !_.isObject(obj)) return true;
+
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) return false;
+    }
+
+    return true;
+  };
+
 
   var defaultModelClass;
 
@@ -470,9 +481,9 @@
        *   title: 'Some blog title',
        *   description: 'Some blog description',
        *   daysActive: 40,
-       *   author: modelize.attr.model({ modelClass: User }),
+       *   author: modelize.attr.model({ modelClass: 'user' }),
        *   posts: modelize.attr.collection({
-       *     modelClass: BlogPost,
+       *     modelClass: 'blogPost',
        *     url: '/posts'
        *   }),
        *
@@ -497,7 +508,6 @@
 
       modelDefinition = modelDefinition || {};
 
-      // var modelDef        = modelDefinition.model || {},
       var modelDef        = _.omit(modelDefinition, 'static', 'collection', 'baseUrl', 'urlPrefix'),
           modelDefaults   = {},
           collectionDef   = _.isObject(modelDefinition.collection) ? modelDefinition.collection : null,
@@ -1498,10 +1508,37 @@
                 thisAttrs = this.getAttributes(options);
 
             for (var attr in attrs) {
-              var val = attrs[attr];
-              if (!_.isEqual(thisAttrs[attr], val)) {
-                diff[attr] = { currentValue: thisAttrs[attr], comparedValue: val };
+              var val = attrs[attr],
+                  isModel = thisAttrs[attr] instanceof Model,
+                  isCollection = thisAttrs[attr].$isCollection,
+                  isDifferent = false;
+
+              if (isModel) {
+                var subDiff = thisAttrs[attr].diff(val);
+                if (!_isEmptyObject(subDiff)) isDifferent = true;
+              } else if (isCollection) {
+                if (!val || val.length !== thisAttrs[attr].length) {
+                  isDifferent = true;
+                } else {
+                  // Lengths are the same if we get here so we can just check
+                  // if every element of one array is in another. In case at least
+                  // one isn't - they're immediately considered different.
+                  var colAttr = thisAttrs[attr].serialize();
+
+                  // Note: Changed order considered "difference" too
+                  for (var i = 0; i < colAttr.length; i++) {
+                    if (!_.isEqual(colAttr[i], val[i])) {
+                      isDifferent = true;
+                      break;
+                    }
+                  }
+
+                }
+              } else if (!_.isEqual(thisAttrs[attr], val)) {
+                isDifferent = true;
               }
+
+              if (isDifferent) diff[attr] = { currentValue: thisAttrs[attr], comparedValue: val };
             }
 
             return diff;
