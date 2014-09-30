@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.5
+ * angular-modelizer v0.1.6
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1195,7 +1195,7 @@
           this.initialize.apply(this, arguments);
 
           // Set remote state on initialization if options say to do so
-          if (options.initRemoteState) this._remoteState = this.serialize();
+          if (options.updateRemoteState) this._remoteState = this.serialize();
         };
 
         // Model instance methods and properties
@@ -1206,11 +1206,10 @@
 
           // Properties
 
-          // Convenience wrappers around `validate` and
-          // `isValid`. Can easily be used on UI side.
+          // Convenience wrappers around `isValid`.
+          // Can be easily used on UI side.
           // Note: its not complete replacement for `isValid`
-          // because the latter supports passing `options` param
-          // for flexibility.
+          // because the latter is to allow overrides.
           get $valid () {
             return this.isValid();
           },
@@ -1250,9 +1249,6 @@
             attrs = attrs || {};
             options = options || {};
 
-            // Run validation.
-            this._validate(attrs, options);
-
             // TODO: Implement `replace: true`
             // to optionally replace the entire model
             // as opposed to always overwrite passed attributes
@@ -1285,10 +1281,7 @@
               var _resData = options.fullResponse ? resData.data : resData,
                   data     = options.parse ? _this.parse(_resData, options) : _resData;
               
-              // TODO: Probably await validation state from there
-              // and `$q.reject` if not successful?
               _this.set(data, options);
-
               _this._remoteState = _this.serialize(options);
 
               return _this;
@@ -1300,30 +1293,25 @@
             return promiseHelper.setFuture(promise, this);
           },
 
-          // Save the current model to the server. Performs validation
-          // before save. Pass `validate: false` to force save without
-          // validating first.
+          // Save the current model to the server.
+          // Performs either `POST`, `PUT` or `PATCH` update
+          // based on model state and provided options.
+          // Pass `patch: true` option to force a partial update
+          // (changed attributes only). This option only works
+          // when model is not `isNew()`.
           save: function (options) {
             if (this.$destroyed) return promiseHelper.setFuture($q.reject(this), this);
 
-            options = _.extend({ validate: true }, options);
-            if (options.parse === undefined) options.parse = true;
-            if (options.validate !== false) options.validate = true;
+            options = _.extend({}, options);
 
             var _this = this,
                 url;
-
-            // TODO: Handle validation flow
-            // if (options.validate && !this._validate(null, options)) {
-            //   return $q.reject(this.$validationErrors);
-            // }
 
             var method = this.isNew() ? 'post' : (options.patch ? 'patch' : 'put');
 
             if (options.url) {
               url = options.url;
             } else {
-              // TODO: Think how to up the readability of these demons
               switch (method) {
                 case 'post':
                   url = this.baseUrl ? urlHelper.combineUrls(this.urlPrefix, this.baseUrl) : null;
@@ -1350,8 +1338,6 @@
               // Only update the model if object is returned
               if (resData && _.isObject(resData)) {
                 var serverAttrs = _this.parse(resData, options);
-
-                // TODO: Probably validate here as well and act accordingly
                 _this.set(serverAttrs);
               }
 
@@ -1510,7 +1496,7 @@
             for (var attr in attrs) {
               var val = attrs[attr],
                   isModel = thisAttrs[attr] instanceof Model,
-                  isCollection = thisAttrs[attr].$isCollection,
+                  isCollection = thisAttrs[attr] && thisAttrs[attr].$isCollection,
                   isDifferent = false;
 
               if (isModel) {
@@ -1562,19 +1548,7 @@
           },
 
           isValid: function(options) {
-            return this._validate({}, _.extend(options || {}, { validate: true })) && !this.$modelErrors;
-          },
-
-          // Note: [DEPRECATED] This is under discussion.
-          // Validation flow is to be removed (to rely on Angular
-          // validation directives completely) or significantly changed
-          _validate: function (attrs, options) {
-            if (!options.validate || !this.validate) return true;
-            attrs = _.extend({}, this.getAttributes(options), attrs);
-
-            this.validationErrors = this.validate(attrs, options) || null;
-            if (!this.validationErrors) return true;
-            return false;
+            return !this.$modelErrors;
           },
 
           addModelError: function (attrName, message) {
@@ -1715,7 +1689,7 @@
           // of successful model `save`.
           create: function(model, options) {
             options = options ? _.clone(options) : {};
-            options.initRemoteState = true;
+            options.updateRemoteState = true;
 
             if (!(model = this._prepareModel(model, options))) return $q.reject(false);
             if (!options.wait) this.add(model, options);
@@ -1793,23 +1767,6 @@
             return Array.prototype.slice.apply(this.models, arguments);
           },
 
-          // Force the collection to re-sort itself. Not supposed
-          // to be called from outside since collection maintains
-          // its order internally when items are added or removed.
-          sort: function (options) {
-            if (!this.comparator) throw new Error('Cannot sort a collection without a comparator');
-            options = options || {};
-
-            // Run sort based on type of `comparator`.
-            if (_.isString(this.comparator) || this.comparator.length === 1) {
-              this.models = _.sortBy(this.models, this.comparator, this);
-            } else {
-              this.models.sort.call(this, this.comparator);
-            }
-
-            return this;
-          },
-
           // Depending on provided options (`add`, `merge`, `remove` - all `true`
           // by default) adds new models that don't yet exist in the collection
           // (`add` option), merges or overwrites existing ones (`merge` option) and
@@ -1817,10 +1774,9 @@
           // Pretty useful for entire collection update in one pass
           // and with high flexibility.
           set: function(models, options) {
-            // TODO: Remove ordering and sorting stuff out of here
             options = _.defaults({}, options, { add: true, remove: true, merge: true });
             if (options.parse) models = this.parse(models, options);
-            if (options.initRemoteState !== false) options.initRemoteState = true;
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
             if (!_.isArray(models) && !_.isObject(models)) return models;
 
@@ -1829,15 +1785,11 @@
 
             var add = options.add,
                 merge = options.merge,
-                remove = options.remove,
-                sort;
+                remove = options.remove;
 
-            var attrs, model, id, existing, diff,
+            var attrs, model, id, existing,
                 at = options.at,
-                toAdd = [], toRemove = [], modelMap = {},
-                sortable = this.comparator && options.sort !== false,
-                sortAttr = _.isString(this.comparator) ? this.comparator : null,
-                order    = !sortable && add && remove ? [] : false;
+                toAdd = [], toRemove = [], modelMap = {};
 
             var i, length;
 
@@ -1855,10 +1807,6 @@
                   if (options.parse) attrs = existing.parse(attrs, options);
 
                   existing.set(attrs, options);
-                  if (sortable && !sort) {
-                    diff = existing.diff(attrs);
-                    if (diff && diff[sortAttr]) sort = true;
-                  }
                 }
 
                 models[i] = existing;
@@ -1874,7 +1822,6 @@
               model = existing || model;
               if (!model) continue;
               id = this._modelId(model);
-              if (order && (model.isNew() || !modelMap[id])) order.push(model);
               modelMap[id] = true;
             }
 
@@ -1887,27 +1834,14 @@
               if (toRemove.length) this.remove(toRemove, options);
             }
 
-            // Check if should be sorted and splice in new models.
-            if (toAdd.length || (order && order.length)) {
-              if (sortable) sort = true;
-              if (at !== null) {
-                if (!at) at = 0;
-                for (i = 0, length = toAdd.length; i < length; i++) {
-                  this.models.splice(at + i, 0, toAdd[i]);
-                }
-              } else {
-                // Note: setting `length = 0` shortens array to zero
-                if (order) this.models.length = 0;
-
-                var orderedModels = order || toAdd;
-                for (i = 0, length = orderedModels.length; i < length; i++) {
-                  this.models.push(orderedModels[i]);
-                }
+            // Check if there is anything to add and splice in
+            // new models at the correct index.
+            if (toAdd.length) {
+              if (!at) at = 0;
+              for (i = 0, length = toAdd.length; i < length; i++) {
+                this.models.splice(at + i, 0, toAdd[i]);
               }
             }
-
-            // Sort if needed
-            if (sort) this.sort();
 
             // And finally return either models array or a single model depending
             // on what was given as argument
@@ -1949,7 +1883,7 @@
 
             // TODO: Think if its needed here or could we allow
             // setting invalid models on collection?
-            // if (model.$validationErrors) return false;
+            // if (model.$modelErrors) return false;
 
             return model;
           },
@@ -2008,8 +1942,7 @@
 
           clone: function () {
             return new this.constructor(this.models, {
-              model: this.model,
-              comparator: this.comparator
+              model: this.model
             });
           }
 
@@ -2048,8 +1981,6 @@
 
           // Init $loading state tracker
           collection._loadingTracker = new PromiseTracker();
-
-          if (options.comparator !== undefined) collection.comparator = options.comparator;
 
           // Note: `collectionMixin` methods work on `this.models`
           // property internally instead of just `this` to allow that
