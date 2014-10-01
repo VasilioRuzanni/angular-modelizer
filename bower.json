@@ -8,7 +8,7 @@
     "url": "git://github.com/VasilioRuzanni/angular-modelizer.git"
   },
   "dependencies": {
-    "angular": "^1.2.x"
+    "angular": ">=1.2.10"
   },
   "ignore": [
     "node_modules",
