@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.1.6
+ * angular-modelizer v0.2.0
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -10,21 +10,337 @@
 ;(function (root, factory) {
 
   if (typeof define === 'function' && define.amd) {
-    define(['angular', 'lodash'], function (angular, _) {
-      return factory(angular, _, document);
+    define(['angular'], function (angular) {
+      return factory(angular, document);
     });
   } else {
-    /* global angular, _ */
-    factory(angular, _, document);
+    /* global angular */
+    factory(angular, document);
   }
 
-}(window, function (angular, _, document, undefined) {
+}(window, function (angular, document, undefined) {
 
   // Convenience method to allow throwing Errors
   // where not correct otherwise (inline in conditions, etc)
   // according to jshint
   var _error = function (errorMessage) {
     throw new Error(errorMessage);
+  };
+
+  // Underscore / lodash methods
+
+  // Exposes a strictly necessary subset of underscore/lodash
+  // functionality. Similar to how Angular implements jqLite for
+  // internal usage. Supported (or partially supported) methods are:
+  // - isObject
+  // - isString
+  // - isArray
+  // - isArguments
+  // - isFunction
+  // - isNumber
+  // - isEqual
+  // - extend
+  // - has
+  // - indexOf
+  // - keys
+  // - values
+  // - pairs
+  // - contains
+  // - flatten
+  // - difference
+  // - without
+  // - map
+  // - iteratee
+  // - matches
+  // - any
+  // - filter
+  // - find
+  // - clone
+  // - uniqueId
+
+  var _idCounter = 0;
+
+  var _ = {};
+
+  _.isString = function (str) {
+    return angular.isString(str);
+  };
+
+  _.isNumber = function (num) {
+    return angular.isNumber(num);
+  };
+
+  _.isObject = function (value) {
+    var type = typeof value;
+    return type === 'function' || (value && type === 'object') || false;
+  };
+
+  _.isArray = function (arr) {
+    return angular.isArray(arr);
+  };
+
+  _.isArguments = function (arg) {
+    return Object.prototype.toString.call(arg) === '[object Arguments]';
+  };
+
+  _.isFunction = function (fn) {
+    return angular.isFunction(fn);
+  };
+
+  _.isEqual = function (o1, o2) {
+    return angular.equals(o1, o2);
+  };
+
+  _.extend = function (obj) {
+    if (!_.isObject(obj)) return obj;
+    var source, prop;
+    for (var i = 1, length = arguments.length; i < length; i++) {
+      source = arguments[i];
+      for (prop in source) {
+        if (Object.prototype.hasOwnProperty.call(source, prop)) {
+            obj[prop] = source[prop];
+        }
+      }
+    }
+
+    return obj;
+  };
+
+  _.has = function(obj, key) {
+    return obj && Object.prototype.hasOwnProperty.call(obj, key);
+  };
+
+  _.indexOf = function (arr, item) {
+    if (!arr || !arr.length) return -1;
+    for (var i = 0; i < arr.length; i++) if (arr[i] === item) return i;
+    return -1;
+  };
+
+  _.keys = function (obj) {
+    if (!_.isObject(obj)) return [];
+    if (Object.keys) return Object.keys(obj);
+
+    var keys = [];
+    for (var key in obj) if (_.has(obj, key)) keys.push(key);
+
+    return keys;
+  };
+
+  _.values = function (obj) {
+    var keys = _.keys(obj),
+        length = keys.length,
+        values = new Array(length);
+
+    for (var i = 0; i < length; i++) {
+      values[i] = obj[keys[i]];
+    }
+
+    return values;
+  };
+
+  _.pairs = function (obj) {
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var pairs = new Array(length);
+    for (var i = 0; i < length; i++) {
+      pairs[i] = [keys[i], obj[keys[i]]];
+    }
+    return pairs;
+  };
+
+  _.contains = function (obj, target) {
+    if (!obj) return false;
+    if (obj.length !== +obj.length) obj = _.values(obj);
+    return _.indexOf(obj, target) >= 0;
+  };
+
+  _.flatten = function (input, shallow, strict, output) {
+    strict = !!strict;
+    output = output || [];
+
+    if (shallow && _.isArray(input) && input.length > 0) {
+      var allArrays = true;
+      for (var m = 0; m < input.length; m++) {
+        if (!_.isArray(input[m])) {
+          allArrays = false;
+          break;
+        }
+      }
+
+      if (allArrays) return Array.prototype.concat.apply(output, input);
+    }
+
+    for (var i = 0, length = input.length; i < length; i++) {
+      var value = input[i];
+      if (!_.isArray(value) && !_.isArguments(value)) {
+        if (!strict) output.push(value);
+      } else if (shallow) {
+        Array.prototype.push.apply(output, value);
+      } else {
+        _.flatten(value, shallow, strict, output);
+      }
+    }
+
+    return output;
+  };
+
+  _.difference = function (arr) {
+    var rest = _.flatten(Array.prototype.slice.call(arguments, 1), true, true, []);
+    return _.filter(arr, function (value) {
+      return !_.contains(rest, value);
+    });
+  };
+
+  _.without = function (arr) {
+    return _.difference(arr, Array.prototype.slice.call(arguments, 1)); 
+  };
+
+  _.map = function (obj, mapFn) {
+    return Array.prototype.map.call(obj, mapFn);
+  };
+
+  _.iteratee = function (value) {
+    if (!value) return angular.identity;
+    if (_.isFunction(value)) {
+      var fn = value;
+
+      // We only have single case here as opposed to underscore/lodash
+      return function (val, index, collection) {
+        return fn.call(null, val, index, collection);
+      };
+    }
+
+    if (_.isObject(value)) {
+      return _.matches(value);
+    }
+
+    var propFn = function (key) {
+      return function (obj) {
+        return obj[key];
+      };
+    };
+
+    return propFn(value);
+  };
+
+  _.matches = function (attrs) {
+    var pairs = _.pairs(attrs),
+        length = pairs.length;
+
+    return function (obj) {
+      if (!obj) return !length;
+
+      obj = new Object(obj);
+      for (var i = 0; i < length; i++) {
+        var pair = pairs[i],
+            key = pair[0];
+
+        if (pair[1] !== obj[key] || !(key in obj)) return false;
+      }
+
+      return true;
+    };
+  };
+
+  _.any = function (obj, predicate) {
+    if (!obj) return false;
+
+    predicate = _.iteratee(predicate);
+
+    var keys = obj.length !== +obj.length && _.keys(obj),
+        length = (keys || obj).length,
+        index, currentKey;
+
+    for (index = 0; index < length; index++) {
+      currentKey = keys ? keys[index] : index;
+      if (predicate(obj[currentKey], currentKey, obj)) return true;
+    }
+
+    return false;
+  };
+
+  _.find = function (obj, predicate) {
+    var result;
+
+    predicate = _.iteratee(predicate);
+
+    _.any(obj, function (value, index, list) {
+      if (predicate(value, index, list)) {
+        result = value;
+        return true;
+      }
+    });
+
+    return result;
+  };
+
+  _.filter = function (obj, predicate) {
+    var results = [];
+    if (!obj) return results;
+
+    predicate = _.iteratee(predicate);
+
+    angular.forEach(obj, function (value, index, list) {
+      if (predicate(value, index, list)) results.push(value);
+    });
+
+    return results;
+  };
+
+  _.clone = function (obj) {
+    if (!_.isObject(obj)) return obj;
+    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
+  };
+
+  _.uniqueId = function (prefix) {
+    var id = ++_idCounter;
+    return String(prefix === null ? '' : prefix) + id;
+  };
+
+
+  // Simple methods that are not underscore/lodash
+  // but mostly simplified versions to prevent moving
+  // too much code from lodash here.
+
+  // Only supports string prop names as opposed to _.omit()
+  var _omitProps = function (obj) {
+    if (!obj) return {};
+    if (!_.isObject(obj)) return obj;
+    
+    var toOmit = Array.prototype.slice.call(arguments, 1),
+        keys = _.keys(obj),
+        result = {};
+
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (key in obj && !_.contains(toOmit, key)) result[key] = obj[key];
+    }
+
+    return result;
+  };
+
+  // Half-deep-clone. Works in conjunction with _extendWithGetSet
+  // Will possibly be combined together.
+  var _deepClone = function (value, extendFn) {
+    if (!value) return value;
+    if (!extendFn || !_.isFunction(extendFn)) extendFn = _.extend;
+
+    if (_.isArray(value)) {
+      var arr = _.clone(value);
+      for (var i = 0; i < arr.length; i++) {
+        arr[i] = _deepClone(arr[i]);
+      }
+
+      return arr;
+    } else if (_.isFunction(value)) {
+      return value;
+    } else if (_.isObject(value)) {
+      // Regular object is just extended using "structured clone"
+      // approach with possibly custom `extend` function
+      return extendFn({}, value);
+    } else {
+      return value;
+    }
   };
 
   var _extendWithGetSet = function (dst) {
@@ -47,15 +363,7 @@
             );
           } else {
             // Otherwise, just do a full clone
-            if (!_.isObject(obj[key]) || _.isFunction(obj[key])) {
-              dst[key] = obj[key];
-            } else if (_.isArray(obj[key])) {
-              // Deep-clone arrays
-              dst[key] = _.cloneDeep(obj[key]);
-            } else {
-              // Regular object is just extended using "structured clone"
-              dst[key] = _extendWithGetSet({}, obj[key]);
-            }
+            dst[key] = _deepClone(obj[key], _extendWithGetSet);
           }
         }
       }
@@ -241,7 +549,7 @@
        */
 
       var modelClass  = attrDefinition.modelClass,
-          options     = _.omit(attrDefinition, 'modelClass'),
+          options     = _omitProps(attrDefinition, 'modelClass'),
           isLazyClass = !modelClass || _.isString(modelClass);
 
       var initializerFn = function (obj, propertyName) {
@@ -299,7 +607,7 @@
        */
 
       var modelClass  = attrDefinition.modelClass,
-          options     = _.omit(attrDefinition, 'modelClass'),
+          options     = _omitProps(attrDefinition, 'modelClass'),
           isLazyClass = !modelClass || _.isString(modelClass);
 
       var initializerFn = function (obj, propertyName) {
@@ -508,7 +816,7 @@
 
       modelDefinition = modelDefinition || {};
 
-      var modelDef        = _.omit(modelDefinition, 'static', 'collection', 'baseUrl', 'urlPrefix'),
+      var modelDef        = _omitProps(modelDefinition, 'static', 'collection', 'baseUrl', 'urlPrefix'),
           modelDefaults   = {},
           collectionDef   = _.isObject(modelDefinition.collection) ? modelDefinition.collection : null,
           staticProps     = _.isObject(modelDefinition.static) ? modelDefinition.static : {},
@@ -1774,7 +2082,7 @@
           // Pretty useful for entire collection update in one pass
           // and with high flexibility.
           set: function(models, options) {
-            options = _.defaults({}, options, { add: true, remove: true, merge: true });
+            options = _.extend({}, { add: true, remove: true, merge: true }, options);
             if (options.parse) models = this.parse(models, options);
             if (options.updateRemoteState !== false) options.updateRemoteState = true;
 

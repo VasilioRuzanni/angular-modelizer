@@ -33,7 +33,8 @@ Simple and lightweight yet feature-rich models to use with AngularJS apps. Start
 
 ### Dependencies
 
-Modelizer depends on `angular` and `lodash`. Supported Angular versions are **1.2.X** and **1.3.X**.
+Modelizer depends on `angular` ~~and `lodash`~~ (since version **0.2.0** Modelizer 
+doesn't depend on `lodash` anymore). Supported Angular versions are **1.2.X** and **1.3.X**.
 
 _Note: Angular 1.0.X and 1.1.X might just be supported as well because
 Modelizer does not really rely on too many Angular components,
