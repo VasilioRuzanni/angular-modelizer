@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.0
+ * angular-modelizer v0.2.2
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -89,6 +89,13 @@
 
   _.isEqual = function (o1, o2) {
     return angular.equals(o1, o2);
+  };
+
+  _.isEmpty = function (obj) {
+    if (obj === null || obj === void 0) return true;
+    if (_.isArray(obj) || _.isString(obj) || _.isArguments(obj)) return obj.length === 0;
+    for (var key in obj) if (_.has(obj, key)) return false;
+    return true;
   };
 
   _.extend = function (obj) {
