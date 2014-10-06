@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.2
+ * angular-modelizer v0.2.3
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1471,7 +1471,9 @@
         
         var Model = function (attributes, options) {
           var attrs = attributes || {};
-          options = options || {};
+          options = options ? _.clone(options) : {};
+
+          this._initOptions = options;
 
           // Setting unique instance ID
           this.$iid = _.uniqueId('model_');
@@ -1797,7 +1799,7 @@
           },
 
           clone: function (options) {
-            return new this.constructor(this.getAttributes(options));
+            return new this.constructor(this.getAttributes(options), _.extend({}, this._initOptions, options));
           },
 
           // Take a list of differences between current and other
