@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.3
+ * angular-modelizer v0.2.4
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1563,13 +1563,10 @@
           // Set a hash of model attributes on the object.
           // Use this to perform bulk attribute updates.
           set: function (attrs, options) {
-            attrs = attrs || {};
+            attrs = attrs ? (attrs instanceof Model ? attrs.getAttributes() : _.clone(attrs)) : {};
             options = options || {};
 
-            // TODO: Implement `replace: true`
-            // to optionally replace the entire model
-            // as opposed to always overwrite passed attributes
-            _extendWithGetSet(this, attrs);
+            _.extend(this, attrs);
 
             return this;
           },
