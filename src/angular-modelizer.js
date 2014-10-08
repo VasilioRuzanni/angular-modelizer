@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.4
+ * angular-modelizer v0.2.5
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -19,6 +19,8 @@
   }
 
 }(window, function (angular, document, undefined) {
+
+  var defaultModelClass;
 
   // Convenience method to allow throwing Errors
   // where not correct otherwise (inline in conditions, etc)
@@ -388,9 +390,6 @@
 
     return true;
   };
-
-
-  var defaultModelClass;
 
 
   // # Internal helpers
@@ -946,6 +945,7 @@
     }
   };
 
+
   // Utility helper that resolves a model type
   // given a resource name string
   var modelizeMetaResolver = {
@@ -1151,6 +1151,66 @@
     }
   };
 
+
+  // The list of reserved internal properties
+  // that are "non-attributes" and should be excluded
+  // from model when getting its attributes (workaround
+  // to allow model attributes on a model directly
+  // side by side with system/internal properties).
+  var _reservedProperties = [
+    '$$hashKey',
+    '$iid',
+    '_modelClassMeta',
+    '_collections',
+    '_remoteState',
+    '_loadingTracker',
+    '_initOptions',
+    'idAttribute',
+    'baseUrl',
+    'urlPrefix',
+    '$modelErrors',
+    '$error',
+    '$valid',
+    '$invalid',
+    '$loading',
+    '$selected',
+    '$destroyed'
+  ];
+
+  // TODO: Think how to combine with _extendWithGetSet
+  var _extendModelAttrs = function (dst) {
+    dst = dst || {};
+    angular.forEach(arguments, function (obj) {
+      if (obj !== dst && _.isObject(obj)) {
+        for (var key in obj) {
+          var propertyDescriptor = Object.getOwnPropertyDescriptor(obj, key);
+
+          // If we encounter a getter function,
+          if (propertyDescriptor && (propertyDescriptor.get || propertyDescriptor.set)) {
+            // Manually copy the definition across rather than doing a regular copy, as the latter
+            // approach would result in the getter function being evaluated. Need to make it
+            // enumerable so subsequent mixins pass through the getter.
+            var getter = propertyDescriptor.get || undefined,
+                setter = propertyDescriptor.set || undefined;
+
+            Object.defineProperty(
+              dst, key, { get: getter, set: setter, enumerable: true, configurable: true }
+            );
+          } else if (obj[key] && _.isObject(obj[key]) && (obj[key] instanceof defaultModelClass || obj[key].$isCollection)) {
+            // Copy models and collections by reference
+            dst[key] = obj[key];
+          } else {
+            // Otherwise, just do a full clone
+            dst[key] = _deepClone(obj[key], _extendModelAttrs);
+          }
+        }
+      }
+    });
+
+    return dst;
+  };
+
+
   // Internal helper to run "property initializers"
   // for complex properties like nested models,
   // collections, etc that need special approach
@@ -1168,29 +1228,6 @@
     }
   };
 
-  // The list of reserved internal properties
-  // that are "non-attributes" and should be excluded
-  // from model when getting its attributes (workaround
-  // to allow model attributes on a model directly
-  // side by side with system/internal properties).
-  var _reservedProperties = [
-    '$$hashKey',
-    '$iid',
-    '_modelClassMeta',
-    '_collections',
-    '_remoteState',
-    '_loadingTracker',
-    'idAttribute',
-    'baseUrl',
-    'urlPrefix',
-    '$modelErrors',
-    '$error',
-    '$valid',
-    '$invalid',
-    '$loading',
-    '$selected',
-    '$destroyed'
-  ];
 
 
   // Enough internal stuff. Enter Modelizer.
@@ -1479,7 +1516,7 @@
           this.$iid = _.uniqueId('model_');
 
           if (options.parse) attrs = this.parse(attrs, options) || {};
-          attrs = _extendWithGetSet({}, (this._modelClassMeta && this._modelClassMeta.defaults) || {}, attrs);
+          attrs = _extendModelAttrs({}, (this._modelClassMeta && this._modelClassMeta.defaults) || {}, attrs);
 
           // Ensure all "complex" properties/accessors are set
           _runPropertyInitializers(this);
@@ -1796,7 +1833,7 @@
           },
 
           clone: function (options) {
-            return new this.constructor(this.getAttributes(options), _.extend({}, this._initOptions, options));
+            return this._class.$new(this.getAttributes(options), _.extend({}, this._initOptions, options));
           },
 
           // Take a list of differences between current and other
@@ -2255,9 +2292,7 @@
           },
 
           clone: function () {
-            return new this.constructor(this.models, {
-              model: this.model
-            });
+            return this.modelClass.$newCollection(this.models);
           }
 
         };

@@ -832,6 +832,7 @@ var _reservedProperties = [
   '_collections',
   '_remoteState',
   '_loadingTracker',
+  '_initOptions',
   'idAttribute',
   'baseUrl',
   'urlPrefix',
