@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.6
+ * angular-modelizer v0.2.7
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -683,7 +683,7 @@
           enumerable: true,
           configurable: true,
           get: function () {
-            return computeFn(this);
+            return computeFn.apply(this);
           }
         });
       };
