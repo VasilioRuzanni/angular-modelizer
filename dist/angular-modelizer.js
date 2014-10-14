@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.5
+ * angular-modelizer v0.2.6
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -379,16 +379,6 @@
     });
 
     return dst;
-  };
-
-  var _isEmptyObject = function (obj) {
-    if (!obj || !_.isObject(obj)) return true;
-
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) return false;
-    }
-
-    return true;
   };
 
 
@@ -1446,10 +1436,14 @@
         // a single object
         modelModelizerMethods = {
           get: function (options) {
+            options = options || {};
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
             return this.$new({}, _.extend({}, this.modelized.modelInstanceOptions, options)).fetch(options);
           },
 
           save: function (attrs, options) {
+            options = options || {};
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
             return this.$new(attrs, _.extend({}, this.modelized.modelInstanceOptions, options)).save(options);
           },
 
@@ -1477,6 +1471,8 @@
           create: function (model, options) {
             if (!model && !_.isObject(model)) return $q.reject(false);
             options = options ? _.clone(options) : {};
+
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
             if (!(model instanceof defaultModelClass)) {
               model = this.modelized.modelClass.$new(model, _.extend({}, this.modelized.modelInstanceOptions, options));
@@ -1549,7 +1545,7 @@
           this.initialize.apply(this, arguments);
 
           // Set remote state on initialization if options say to do so
-          if (options.updateRemoteState) this._remoteState = this.serialize();
+          if (options.updateRemoteState) this._setRemoteState();
         };
 
         // Model instance methods and properties
@@ -1633,7 +1629,7 @@
                   data     = options.parse ? _this.parse(_resData, options) : _resData;
               
               _this.set(data, options);
-              _this._remoteState = _this.serialize(options);
+              _this._setRemoteState(null, options);
 
               return _this;
             }, function (reason) {
@@ -1692,7 +1688,7 @@
                 _this.set(serverAttrs);
               }
 
-              _this._remoteState = _this.serialize(options);
+              _this._setRemoteState(null, options);
 
               return _this;
             }).catch(function (response) {
@@ -1804,7 +1800,7 @@
             for (var attrName in modelAttrs) {
               var attr = modelAttrs[attrName];
               if (attr && (attr instanceof Model || attr.$isCollection) && attr.serialize) {
-                modelAttrs[attrName] = attr.serialize(options);
+                modelAttrs[attrName] = attr.serialize(_.extend({}, options, { changedOnly: false }));
               }
             }
 
@@ -1847,12 +1843,16 @@
             for (var attr in attrs) {
               var val = attrs[attr],
                   isModel = thisAttrs[attr] instanceof Model,
+                  idAttribute = thisAttrs[attr].idAttribute,
                   isCollection = thisAttrs[attr] && thisAttrs[attr].$isCollection,
                   isDifferent = false;
 
+              // Note: Since we keep models in serialized state, we need to compare
+              // model properties and models inside collection properties by model
+              // ids (or whatever is set as `idAttribute`)
+
               if (isModel) {
-                var subDiff = thisAttrs[attr].diff(val);
-                if (!_isEmptyObject(subDiff)) isDifferent = true;
+                if (!val || thisAttrs[attr][idAttribute] !== val[idAttribute]) isDifferent = true;
               } else if (isCollection) {
                 if (!val || val.length !== thisAttrs[attr].length) {
                   isDifferent = true;
@@ -1860,11 +1860,11 @@
                   // Lengths are the same if we get here so we can just check
                   // if every element of one array is in another. In case at least
                   // one isn't - they're immediately considered different.
-                  var colAttr = thisAttrs[attr].serialize();
+                  var colAttr = thisAttrs[attr];
 
                   // Note: Changed order considered "difference" too
                   for (var i = 0; i < colAttr.length; i++) {
-                    if (!_.isEqual(colAttr[i], val[i])) {
+                    if (val[i][idAttribute] !== colAttr[i][idAttribute]) {
                       isDifferent = true;
                       break;
                     }
@@ -1942,6 +1942,11 @@
 
           clearModelErrors: function () {
             this.$modelErrors = null;
+          },
+
+          _setRemoteState: function (attrs, options) {
+            if (!attrs && attrs !== false) attrs = this.serialize(options);
+            this._remoteState = attrs;
           }
 
         });
@@ -2390,6 +2395,7 @@
 
           get: function (id, options) {
             options = options || {};
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
             var _this = this,
                 url = options.url;
@@ -2422,6 +2428,7 @@
           query: function (query, options) {
             options = options || {};
             options.params = query || {};
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
             var _this = this,
                 url = options.url ||
@@ -2445,6 +2452,9 @@
           },
 
           all: function (options) {
+            options = options || {};
+            if (options.updateRemoteState !== false) options.updateRemoteState = true;
+
             return this.query(null, options);
           }
         });
