@@ -1,6 +1,6 @@
 {
   "name": "angular-modelizer",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Lightweight and simple models for AngularJS",
   "main": "./dist/angular-modelizer.js",
   "repository": {

@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.7
+ * angular-modelizer v0.2.8
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -311,6 +311,33 @@
   // but mostly simplified versions to prevent moving
   // too much code from lodash here.
 
+  // Define getter/setter accessor from `src` source object to
+  // destination `dst` object. `key` param defines property name.
+  // Returns `true` if property is getter/setter and is set,
+  // `false` otherwise.
+  var _defineAccessor = function (dst, src, key) {
+    if (!_.isObject(src) || !_.isObject(dst) || !key) return false;
+
+    var propertyDescriptor = Object.getOwnPropertyDescriptor(src, key);
+
+    // If we encounter a getter function,
+    if (propertyDescriptor && (propertyDescriptor.get || propertyDescriptor.set)) {
+      // Manually copy the definition across rather than doing a regular copy, as the latter
+      // approach would result in the getter function being evaluated. Need to make it
+      // enumerable so subsequent mixins pass through the getter.
+      var getter = propertyDescriptor.get || undefined,
+          setter = propertyDescriptor.set || undefined;
+
+      Object.defineProperty(
+        dst, key, { get: getter, set: setter, enumerable: true, configurable: true }
+      );
+
+      return true;
+    }
+
+    return false;
+  };
+
   // Only supports string prop names as opposed to _.omit()
   var _omitProps = function (obj) {
     if (!obj) return {};
@@ -322,7 +349,11 @@
 
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
-      if (key in obj && !_.contains(toOmit, key)) result[key] = obj[key];
+      if (key in obj && !_.contains(toOmit, key)) {
+        if (!_defineAccessor(result, obj, key)) {
+          result[key] = obj[key];
+        }
+      }
     }
 
     return result;
@@ -357,21 +388,9 @@
     angular.forEach(arguments, function (obj) {
       if (obj !== dst && _.isObject(obj)) {
         for (var key in obj) {
-          var propertyDescriptor = Object.getOwnPropertyDescriptor(obj, key);
-
-          // If we encounter a getter function,
-          if (propertyDescriptor && (propertyDescriptor.get || propertyDescriptor.set)) {
-            // Manually copy the definition across rather than doing a regular copy, as the latter
-            // approach would result in the getter function being evaluated. Need to make it
-            // enumerable so subsequent mixins pass through the getter.
-            var getter = propertyDescriptor.get || undefined,
-                setter = propertyDescriptor.set || undefined;
-
-            Object.defineProperty(
-              dst, key, { get: getter, set: setter, enumerable: true, configurable: true }
-            );
-          } else {
-            // Otherwise, just do a full clone
+          // Try to define props for getter/setter
+          if (!_defineAccessor(dst, obj, key)) {
+            // Otherwise (if failed - i.e., its not a getter/setter), just do a full clone
             dst[key] = _deepClone(obj[key], _extendWithGetSet);
           }
         }
@@ -1895,7 +1914,7 @@
           },
 
           isNew: function () {
-            return !this[this.idAttribute];
+            return !this.idAttribute || !this[this.idAttribute];
           },
 
           isValid: function(options) {
