@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.10
+ * angular-modelizer v0.2.11
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -962,11 +962,14 @@
       var parentModelized  = modelizer.parentModelized,
           isCollection     = modelizer.isCollection,
           resourceName     = modelizer.resourceName,
-          parentModelClass = parentModelized ? parentModelized.modelClass : undefined;
+          parentModelClass = (parentModelized && parentModelized.modelClass) || undefined;
 
       var modelized = {
         modelClass: null,
-        modelInstanceOptions: { }
+        modelInstanceOptions: { },
+        isCollection: isCollection,
+        resourceName: resourceName,
+        resourceId: modelizer.resourceId || null
       };
 
 
@@ -1424,7 +1427,7 @@
         // (via modelizeMetaResolver). This is what exposes all the
         // public API for "modelizing". Pretty handful thighy!
         var Modelizer = function (resourceName, resourceId, isCollection, parentModelized, options) {
-          options              = _.clone(options) || {};
+          options              = options ? _.clone(options) : {};
           this.resourceName    = resourceName;
           this.resourceId      = resourceId;
           this.isCollection    = isCollection;
