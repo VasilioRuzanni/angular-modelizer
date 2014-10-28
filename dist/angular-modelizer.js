@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.8
+ * angular-modelizer v0.2.9
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -990,7 +990,7 @@
 
           // TODO: Think over and maybe obtain the `baseURL` and `urlPrefix` from model property definition too
           if ((isCollection && modelClassHelper.hasCollectionAttr(parentModelClass, resourceName)) ||
-                               modelClassHelper.hasModelAttr()(parentModelClass, resourceName)) {
+                               modelClassHelper.hasModelAttr(parentModelClass, resourceName)) {
             var specialAttr = modelClassHelper.getSpecialAttrMeta(parentModelClass, resourceName);
             if(specialAttr) modelized.modelClass = specialAttr.modelClass;
           }
