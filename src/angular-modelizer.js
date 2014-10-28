@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.9
+ * angular-modelizer v0.2.10
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -992,7 +992,26 @@
           if ((isCollection && modelClassHelper.hasCollectionAttr(parentModelClass, resourceName)) ||
                                modelClassHelper.hasModelAttr(parentModelClass, resourceName)) {
             var specialAttr = modelClassHelper.getSpecialAttrMeta(parentModelClass, resourceName);
-            if(specialAttr) modelized.modelClass = specialAttr.modelClass;
+            if (specialAttr) {
+              // Note: There is a possibility of `modelClass` options of
+              // modelize.attr.collection() or modelize.attr.model() being a string.
+              // This corner case has to be handled
+
+              var attrModelClass = specialAttr.modelClass;
+              if (attrModelClass) {
+                if (modelClassHelper.isModelClass(attrModelClass)) {
+                  modelized.modelClass = attrModelClass;
+                } else if (_.isString(attrModelClass)) {
+                  modelized.modelClass = modelClassCache.byModelName[attrModelClass] ||
+                                         modelClassCache.byCollectionName[attrModelClass];
+                }
+              }
+
+              // Note: In case when special attr named as `resourceName` is found but is not
+              // resolved to any known model class, we just fallback to default
+              // model immediately (so, the further "modelizing" is effectively prevented)
+              if (!modelized.modelClass) modelized.modelClass = defaultModelClass;
+            }
           }
 
         }
