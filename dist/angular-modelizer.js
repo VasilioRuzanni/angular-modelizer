@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.11
+ * angular-modelizer v0.2.12
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -2368,7 +2368,6 @@
 
           collection.$iid = _.uniqueId('collection_');
           collection.modelClass = modelClass;
-          collection.baseUrl = _.extend({}, collection.modelClass.baseUrl, options.baseUrl);
 
           // Mark collection with special property to
           // distinct it from regular `Array`
