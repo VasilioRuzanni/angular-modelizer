@@ -106,9 +106,13 @@
     for (var i = 1, length = arguments.length; i < length; i++) {
       source = arguments[i];
       for (prop in source) {
-        if (Object.prototype.hasOwnProperty.call(source, prop)) {
-            obj[prop] = source[prop];
-        }
+        if (!Object.prototype.hasOwnProperty.call(source, prop)) continue;
+
+        // Check for accessors that have only getters and not setters and ignore them
+        var propertyDescriptor = Object.getOwnPropertyDescriptor(source, prop);
+        if (propertyDescriptor && !propertyDescriptor.set) continue;
+
+        obj[prop] = source[prop];
       }
     }
 
