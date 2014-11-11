@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.13
+ * angular-modelizer v0.2.14
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -108,9 +108,9 @@
       for (prop in source) {
         if (!Object.prototype.hasOwnProperty.call(source, prop)) continue;
 
-        // Check for accessors that have only getters and not setters and ignore them
-        var propertyDescriptor = Object.getOwnPropertyDescriptor(source, prop);
-        if (propertyDescriptor && !propertyDescriptor.set) continue;
+        // Check for target object accessors that have only getters and not setters and ignore them
+        var targetPropertyDescriptor = Object.getOwnPropertyDescriptor(obj, prop);
+        if (targetPropertyDescriptor && (targetPropertyDescriptor.get && !targetPropertyDescriptor.set)) continue;
 
         obj[prop] = source[prop];
       }
