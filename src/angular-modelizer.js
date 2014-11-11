@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.12
+ * angular-modelizer v0.2.13
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
