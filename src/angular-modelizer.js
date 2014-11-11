@@ -2466,6 +2466,7 @@
               return _future;
             });
 
+            if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
             return promiseHelper.setFuture(promise, _future);
           },
 
@@ -2492,6 +2493,7 @@
               return _future;
             });
 
+            if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
             return promiseHelper.setFuture(promise, _future);
           },
 
