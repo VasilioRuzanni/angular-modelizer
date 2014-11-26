@@ -1091,17 +1091,25 @@ angular.module('app').config(['modelizeProvider', function (modelizeProvider) {
 
 There is a tiny `mzModelError` directive in Modelizer
 to help you to show model errors to the user. Requires `ng-model`
-attribute set on the same element.
+attribute set on the same element (will be ignored otherwise).
+Think of it as of just another validator like 'required' but
+related to model errors returned from server.
 
 In the example below, the message with `modelError` validation token
 will appear for form control when server returns the error for `title`
 field on `post` model. See previous section on how these errors are parsed.
 ```html
 <form name="postForm" novalidate>
-  <imput name="title" required minlength="4" ng-model="post.title" mz-model-error="post.$modelErrors.title">
+  <!-- The model error property will be implied automatically based 
+  on ng-model property and the value will be parsed against
+  "post.$modelErrors.title" expression -->
+  <imput name="title" ng-model="post.title" required minlength="4" mz-model-error>
+
+  <!-- OR: explicitly set the object to take model errors from -->
+  <imput name="title" ng-model="post.title" required minlength="4" mz-model-error="post.$modelErrors.title">
 
   <!-- Show the errors with ngMessages -->
-  <div ng-messages="post.title.$error">
+  <div ng-messages="postForm.title.$error">
     <div ng-message="required">The title is required for a blog post</div>
     <div ng-message="minlength">The title should be at least 4 charactes long</div>
     <div ng-message="modelError">

@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.14
+ * angular-modelizer v0.2.15
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -2549,11 +2549,29 @@
         require: ['?ngModel'],
         link: function (scope, el, attrs, ctrls) {
           var ngModelCtrl = ctrls[0];
-
-          if (!ngModelCtrl || !attrs.mzModelError) return;
-
-          scope.$watch(attrs.mzModelError, function (attrError) {
-            var isInvalid = attrError || (angular.isArray(attrError) && attrError.length > 0);
+  
+          if (!ngModelCtrl) return;
+  
+          // Try explicitly set first
+          var modelErrorAttr = attrs.modelError;
+          if (!modelErrorAttr && _.isString(attrs.ngModel)) {
+            // Try to imply from model name
+            // Note: might be changed to take ngModelCtrl.$name into account instead
+            var attrNameArray = attrs.ngModel.split('.');
+  
+            // Should be at least 2 chunks.
+            // If so, splice '$modelErrors' attribute name in,
+            // right before the last chunk.
+            if (attrNameArray.length >= 2) {
+              attrNameArray.splice(attrNameArray.length - 1, 0, '$modelErrors');
+              modelErrorAttr = attrNameArray.join('.');
+            }
+          }
+  
+          if (!modelErrorAttr) return;
+  
+          scope.$watch(modelErrorAttr, function (attrValue) {
+            var isInvalid = attrValue || (_.isArray(attrValue) && attrValue.length > 0);
             ngModelCtrl.$setValidity('modelError', !isInvalid);
           });
         }
