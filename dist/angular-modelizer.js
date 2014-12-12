@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.16
+ * angular-modelizer v0.2.17
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1669,6 +1669,9 @@
             options = options ? _.clone(options) : {};
             if (options.parse === undefined) options.parse = true;
 
+            var fullResponse = !!options.fullResponse,
+                rawData      = !!options.rawData;
+
             if (!url) _error('URL error: "baseUrl" should be defined or "options.url" specified to "fetch" the model');
 
             // Note: Prevent fullResponse option from being passed to $request level
@@ -1681,7 +1684,7 @@
               _this.set(data, options);
               _this._setRemoteState(null, options);
 
-              return options.fullResponse ? res : _this;
+              return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
               if (_.isFunction(options.onError)) options.onError.apply(_this, res);
               $q.reject(res);
@@ -2453,8 +2456,10 @@
             options = options || {};
             if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
-            var _this = this,
-                url = options.url;
+            var _this        = this,
+                url          = options.url,
+                fullResponse = !!options.fullResponse,
+                rawData      = !!options.rawData;
 
             if (!url) {
               var baseUrl   = options.baseUrl || this.baseUrl,
@@ -2467,42 +2472,44 @@
 
             if (!url) _error('URL error: "baseUrl" should be defined or "options.url" specified to "get" a resource');
 
-            var _future = options.rawData ? {} : _this.$new({}, options);
-            var promise = this.$request.get(url, options).then(function (modelData) {
-              if (options.rawData) {
-                _.extend(_future, modelData);
+            var _future = rawData ? {} : _this.$new({}, options);
+            var promise = this.$request.get(url, _.extend({}, options, { fullResponse: true })).then(function (res) {
+              if (rawData) {
+                _.extend(_future, res.data);
               } else {
-                _future.set(modelData, options);
+                _future.set(res.data, options);
               }
 
-              return _future;
+              return fullResponse ? res : _future;
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
             return promiseHelper.setFuture(promise, _future);
           },
 
-          query: function (query, options) {
+          query: function (queryParams, options) {
             options = options || {};
-            options.params = query || {};
+            options.params = queryParams || {};
             if (options.updateRemoteState !== false) options.updateRemoteState = true;
 
             var _this = this,
                 url = options.url ||
                       urlHelper.combineUrls(options.urlPrefix, options.baseUrl) ||
-                      urlHelper.combineUrls(this.urlPrefix, this.baseUrl);
+                      urlHelper.combineUrls(this.urlPrefix, this.baseUrl),
+                fullResponse = !!options.fullResponse,
+                rawData      = !!options.rawData;
 
             if (!url) _error('URL error: "baseUrl" should be defined or "options.url" specified to "query" a resource');
             
-            var _future = options.rawData ? [] : _this.$newCollection([], options);
-            var promise = this.$request.get(url, options).then(function (data) {
-              if (options.rawData) {
-                Array.prototype.push.apply(_future, data);
+            var _future = rawData ? [] : _this.$newCollection([], options);
+            var promise = this.$request.get(url, _.extend({}, options, { fullResponse: true })).then(function (res) {
+              if (rawData) {
+                Array.prototype.push.apply(_future, res.data);
               } else {
-                _future.reset(data, options);
+                _future.reset(res.data, options);
               }
 
-              return _future;
+              return fullResponse ? res : _future;
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
