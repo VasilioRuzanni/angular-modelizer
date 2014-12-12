@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.18
+ * angular-modelizer v0.2.19
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1682,11 +1682,11 @@
               _this.set(data, options);
               _this._setRemoteState(null, options);
 
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.call(_this, res);
 
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
-              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              if (_.isFunction(options.onError)) options.onError.call(_this, res);
               $q.reject(res);
             });
 
@@ -2054,11 +2054,11 @@
                   data    = options.parse && _this.parse ? _this.parse(res.data, options) : res.data;
 
               _this[method](data, options);
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.call(_this, res);
 
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
-              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              if (_.isFunction(options.onError)) options.onError.call(_this, res);
               $q.reject(res);
             });
 
@@ -2480,11 +2480,11 @@
                 _future.set(res.data, options);
               }
 
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.call(_this, res);
 
               return fullResponse ? res : _future;
             }, function (res) {
-              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              if (_.isFunction(options.onError)) options.onError.call(_this, res);
               $q.reject(res);
             });
 
@@ -2514,11 +2514,11 @@
                 _future.reset(res.data, options);
               }
 
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.call(_this, res);
 
               return fullResponse ? res : _future;
             }, function (res) {
-              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              if (_.isFunction(options.onError)) options.onError.call(_this, res);
               $q.reject(res);
             });
 
