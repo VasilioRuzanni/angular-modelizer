@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.17
+ * angular-modelizer v0.2.18
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1678,11 +1678,11 @@
             // on fetch and always request full response to be handled here
             var promise = this.$request.get(url, _.extend({}, options, { fullResponse: true })).then(function (res) {
               var data = options.parse ? _this.parse(res.data, options) : res.data;
-
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
               
               _this.set(data, options);
               _this._setRemoteState(null, options);
+
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
 
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
@@ -2053,8 +2053,8 @@
               var method  = options.reset ? 'reset' : 'set',
                   data    = options.parse && _this.parse ? _this.parse(res.data, options) : res.data;
 
-              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
               _this[method](data, options);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
 
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
@@ -2480,7 +2480,12 @@
                 _future.set(res.data, options);
               }
 
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+
               return fullResponse ? res : _future;
+            }, function (res) {
+              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              $q.reject(res);
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
@@ -2509,7 +2514,12 @@
                 _future.reset(res.data, options);
               }
 
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+
               return fullResponse ? res : _future;
+            }, function (res) {
+              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              $q.reject(res);
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
