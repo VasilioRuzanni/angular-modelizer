@@ -453,7 +453,9 @@ object comes into play.
   with `$future` property whose value is already initialized model or collection
   but without server data. Model/collection is being updated with actual data
   when that is returned from server (similar to how Angular `$resource` works
-  and to Restangular `$object` property on promises).
+  and to Restangular `$object` property on promises). Please note that `$future` always
+  references only the `data` portion of the response, ignoring the `fullResponse`
+  or `rawData` parameters.
 
 The model class resolution strategy relies on the fact that `resourceName` argument
 can be either:
@@ -904,7 +906,8 @@ service - modelizer `$request`. The only thing it does
 is makes successful requests promises being resolved
 with `data` only and not entire response (pass `rawData: true`
 option to obtain the entire response as `$http` does by default).
-It also adds convenience `$future` object to promises.
+It also adds convenience `$future` object to promises (always contains
+data even if `fullResponse: true` option is passed.
 
 For convenience, the `$request` is set as a property of:
 - `modelize`

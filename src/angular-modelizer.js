@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.15
+ * angular-modelizer v0.2.16
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1373,7 +1373,8 @@
           var method = options.method || '',
               url    = options.url,
               data   = options.data || undefined,
-              fullResponse = !!options.fullResponse;
+              fullResponse = !!options.fullResponse,
+              hasFuture = !!options.future;
 
           var deferred = $q.defer();
 
@@ -1382,14 +1383,16 @@
           // `options.parse` concept despite they can be somewhat
           // interchanged and serve the same purpose.
           var _future = {};
-          $http(_.extend({}, options, { method: method.toUpperCase(), url: url, data: data })).then(function (response) {
-            _future = fullResponse ? response : response.data;
-            deferred.resolve(_future);
-          }, function (response) {
-            deferred.reject(response);
+          $http(_.extend({}, options, { method: method.toUpperCase(), url: url, data: data })).then(function (res) {
+            if (hasFuture) _.extend(_future, res.data);
+            deferred.resolve(fullResponse ? res : res.data);
+          }, function (res) {
+            deferred.reject(res);
           });
 
-          deferred.promise = promiseHelper.setFuture(deferred.promise, _future);
+          if (hasFuture) {
+            deferred.promise = promiseHelper.setFuture(deferred.promise, _future);
+          }
 
           return deferred.promise;
         };
@@ -1668,17 +1671,20 @@
 
             if (!url) _error('URL error: "baseUrl" should be defined or "options.url" specified to "fetch" the model');
 
-            // TODO: This might need fixes and simplification
-            var promise = this.$request.get(url, options).then(function (resData) {
-              var _resData = options.fullResponse ? resData.data : resData,
-                  data     = options.parse ? _this.parse(_resData, options) : _resData;
+            // Note: Prevent fullResponse option from being passed to $request level
+            // on fetch and always request full response to be handled here
+            var promise = this.$request.get(url, _.extend({}, options, { fullResponse: true })).then(function (res) {
+              var data = options.parse ? _this.parse(res.data, options) : res.data;
+
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
               
               _this.set(data, options);
               _this._setRemoteState(null, options);
 
-              return _this;
-            }, function (reason) {
-              $q.reject(reason);
+              return options.fullResponse ? res : _this;
+            }, function (res) {
+              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              $q.reject(res);
             });
 
             if (this._loadingTracker) this._loadingTracker.addPromise(promise);
@@ -2038,13 +2044,19 @@
               url = urlHelper.combineUrls(this.modelClass.urlPrefix, this.modelClass.baseUrl);
             }
             
-            var promise = this.$request.get(url, options).then(function (res) {
-              var _resData = fullResponse ? res.data : res,
-                  method  = options.reset ? 'reset' : 'set';
+            // Note: Prevent fullResponse option from being passed to $request level
+            // on fetch and always request full response to be handled here
+            var promise = this.$request.get(url, _.extend({}, options, { fullResponse: true })).then(function (res) {
+              var method  = options.reset ? 'reset' : 'set',
+                  data    = options.parse && _this.parse ? _this.parse(res.data, options) : res.data;
 
-              _this[method](_resData, options);
+              if (_.isFunction(options.onSuccess)) options.onSuccess.apply(_this, res);
+              _this[method](data, options);
 
-              return rawData ? _resData : _this;
+              return fullResponse ? res : (rawData ? res.data : _this);
+            }, function (res) {
+              if (_.isFunction(options.onError)) options.onError.apply(_this, res);
+              $q.reject(res);
             });
 
             if (this._loadingTracker) this._loadingTracker.addPromise(promise);
