@@ -2470,7 +2470,7 @@
             var _future = options.rawData ? {} : _this.$new({}, options);
             var promise = this.$request.get(url, options).then(function (modelData) {
               if (options.rawData) {
-                _future = modelData;
+                _.extend(_future, modelData);
               } else {
                 _future.set(modelData, options);
               }
@@ -2497,7 +2497,7 @@
             var _future = options.rawData ? [] : _this.$newCollection([], options);
             var promise = this.$request.get(url, options).then(function (data) {
               if (options.rawData) {
-                _future = data;
+                Array.prototype.push.apply(_future, data);
               } else {
                 _future.reset(data, options);
               }
