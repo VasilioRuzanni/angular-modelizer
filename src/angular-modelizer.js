@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.20
+ * angular-modelizer v0.2.21
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1472,8 +1472,26 @@
 
           $newCollection: function (models, options) {
             return this.modelized.modelClass.$newCollection(models, _.extend({}, this.modelized.modelInstanceOptions, options));
-          }
+          },
 
+          resourceUrl: function () {
+            var instanceOpts = this.modelized.modelInstanceOptions || {},
+                url;
+
+            // In case custom resourceUrl is specified for a class - call it
+            // passing model instance options we managed to collect so far
+            if (_.isFunction(this.modelized.modelClass.resourceUrl)) {
+              return this.modelized.modelClass.resourceUrl(instanceOpts);
+            }
+
+            if (!instanceOpts.baseUrl) return null;
+
+            // Follow the default convention for anything else
+            url = urlHelper.buildRestfulUrl(instanceOpts.baseUrl, this.isCollection, this.resourceId);
+
+            // Only prepend urlPrefix if `url` is there
+            return url ? urlHelper.combineUrls(instanceOpts.urlPrefix, url) : null;
+          }
         };
 
         _extendWithGetSet(Modelizer.prototype, coreModelizerMethods, sharedModelizerMethods);
@@ -2560,9 +2578,10 @@
         };
 
         _extendWithGetSet(modelize, coreModelizerMethods);
-        modelize.attr     = attrBuilder;
-        modelize.Model    = defaultModelClass;
-        modelize.$request = $request;
+        modelize.attr      = attrBuilder;
+        modelize.Model     = defaultModelClass;
+        modelize.$request  = $request;
+        modelize.urlHelper = urlHelper;
 
         // For testing/stubbing purposes
         modelize.internal = {
