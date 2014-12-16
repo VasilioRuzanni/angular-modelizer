@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.19
+ * angular-modelizer v0.2.20
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -2030,6 +2030,15 @@
 
           initialize: function () { },
 
+          // Get the resource URL for this collection
+          resourceUrl: function () {
+            var baseUrl = this.baseUrl || (this.modelClass && this.modelClass.baseUrl) || null;
+            if (!baseUrl) return null;
+
+            var urlPrefix = this.urlPrefix || (this.modelClass && this.modelClass.urlPrefix) || null;
+            return urlHelper.setUrlParams(urlHelper.combineUrls(urlPrefix, baseUrl), this);
+          },
+
           // Load a remote representation of this collection from server
           // and reset the collection with whatever will arrive.
           // If `reset: true` is in `options` then collection will be
@@ -2041,11 +2050,9 @@
 
             var fullResponse = !!options.fullResponse,
                 rawData      = !!options.rawData,
-                url          = options.url;
+                url          = options.url || this.resourceUrl();
 
-            if (!url && this.modelClass.baseUrl) {
-              url = urlHelper.combineUrls(this.modelClass.urlPrefix, this.modelClass.baseUrl);
-            }
+            if (!url) _error('URL error: "baseUrl" should be defined or "options.url" specified to "fetch" the collection');
             
             // Note: Prevent fullResponse option from being passed to $request level
             // on fetch and always request full response to be handled here
@@ -2294,14 +2301,12 @@
           // Prepares a model instance to be added to this collection
           _prepareModel: function(attrs, options) {
             if (this._isModel(attrs)) return attrs;
+            options = options ? _.clone(options) : {};
 
-            var model = new this.modelClass(attrs, options);
+            if (this.baseUrl) options.baseUrl = this.baseUrl;
+            if (this.urlPrefix) options.urlPrefix = this.urlPrefix;
 
-            // TODO: Think if its needed here or could we allow
-            // setting invalid models on collection?
-            // if (model.$modelErrors) return false;
-
-            return model;
+            return new this.modelClass(attrs, options);
           },
 
           // Checks whether the object is a `Model` or
@@ -2356,8 +2361,10 @@
             return responseData;
           },
 
-          clone: function () {
-            return this.modelClass.$newCollection(this.models);
+          clone: function (options) {
+            if (!options.baseUrl) options.baseUrl = this.baseUrl;
+            if (!options.urlPrefix) options.urlPrefix = this.urlPrefix;
+            return this.modelClass.$newCollection(this.models, options);
           }
 
         };
@@ -2394,6 +2401,10 @@
 
           // Init $loading state tracker
           collection._loadingTracker = new PromiseTracker();
+
+          // Handling URLs
+          collection.baseUrl   = options.baseUrl   || (collection.modelClass && collection.modelClass.baseUrl)   || null;
+          collection.urlPrefix = options.urlPrefix || (collection.modelClass && collection.modelClass.urlPrefix) || null;
 
           // Note: `collectionMixin` methods work on `this.models`
           // property internally instead of just `this` to allow that
