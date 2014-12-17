@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.21
+ * angular-modelizer v0.2.22
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -551,6 +551,14 @@
     }
   };
 
+  // Default method to get URL prefix
+  var _getUrlPrefix = function (parentModel) {
+    if (parentModel && _.isFunction(parentModel.resourceUrl)) {
+      return parentModel.resourceUrl();
+    }
+
+    return '';
+  };
 
   // Internal helper (exposed as modelize.attr property)
   // to help define complex attributes in a way similar to Ember.Data DS.attr(...)
@@ -569,7 +577,16 @@
 
       var modelClass  = attrDefinition.modelClass,
           options     = _omitProps(attrDefinition, 'modelClass'),
-          isLazyClass = !modelClass || _.isString(modelClass);
+          isLazyClass = !modelClass || _.isString(modelClass),
+          getUrlPrefixFn;
+
+      if (!options.urlPrefix && options.urlPrefix !== false) {
+        // Set default urlPrefix resolution function if not set
+        getUrlPrefixFn = _getUrlPrefix;
+      } else if (_.isFunction(options.urlPrefix)) {
+        getUrlPrefixFn = options.urlPrefix;
+        delete options.urlPrefix;
+      }
 
       var initializerFn = function (obj, propertyName) {
         var _value = null;
@@ -583,13 +600,17 @@
         }
 
         if (!_modelClass) _modelClass = defaultModelClass;
-
         attrDefinition.modelClass = _modelClass;
 
         Object.defineProperty(obj, propertyName, {
           enumerable: true,
           configurable: true,
           get: function () {
+            // TODO: Find a way to watch for model.isNew() instead
+
+            // If urlPrefix resolution function was set - invoke it now
+            // to ensure it is set consistently and always up to date
+            if (_value && getUrlPrefixFn) _value.urlPrefix = getUrlPrefixFn(obj);
             return _value;
           },
           set: function (value) {
@@ -627,7 +648,16 @@
 
       var modelClass  = attrDefinition.modelClass,
           options     = _omitProps(attrDefinition, 'modelClass'),
-          isLazyClass = !modelClass || _.isString(modelClass);
+          isLazyClass = !modelClass || _.isString(modelClass),
+          getUrlPrefixFn;
+
+      if (!options.urlPrefix && options.urlPrefix !== false) {
+        // Set default urlPrefix resolution function if not set
+        getUrlPrefixFn = _getUrlPrefix;
+      } else if (_.isFunction(options.urlPrefix)) {
+        getUrlPrefixFn = options.urlPrefix;
+        delete options.urlPrefix;
+      }
 
       var initializerFn = function (obj, propertyName) {
         var _value = null;
@@ -641,7 +671,6 @@
         }
 
         if (!_modelClass) _modelClass = defaultModelClass;
-
         attrDefinition.modelClass = _modelClass;
 
         Object.defineProperty(obj, propertyName, {
@@ -649,9 +678,13 @@
           configurable: true,
           get: function () {
             if (!_value) {
+
               _value = _modelClass.$newCollection(null, options);
             }
 
+            // If urlPrefix resolution function was set - invoke it now
+            // to ensure it is set consistently and always up to date
+            if (getUrlPrefixFn) _value.urlPrefix = getUrlPrefixFn(obj);
             return _value;
           },
           set: function (value) {
@@ -720,12 +753,12 @@
 
   // Helper to assist model class building and introspection
   var modelClassHelper = {
-    isModelClass: function (modelClass) {
-      return modelClass.prototype instanceof defaultModelClass;
-    },
-
     isDefaultModelClass: function (modelClass) {
       return modelClass === defaultModelClass;
+    },
+
+    isModelClass: function (modelClass) {
+      return modelClass.prototype instanceof defaultModelClass || modelClassHelper.isDefaultModelClass(modelClass);
     },
 
     hasSpecialAttr: function (modelClass, propName) {
@@ -993,7 +1026,7 @@
       // first try to check parent model properties
       if (!urlHelper.isLikeUrl(modelizer.resourceName)) {
         if (parentModelClass && modelClassHelper.isModelClass(parentModelClass) &&
-                                parentModelClass !== defaultModelClass) {
+                               !modelClassHelper.isDefaultModelClass(parentModelClass)) {
 
           // TODO: Think over and maybe obtain the `baseURL` and `urlPrefix` from model property definition too
           if ((isCollection && modelClassHelper.hasCollectionAttr(parentModelClass, resourceName)) ||
@@ -1183,6 +1216,38 @@
       if (parentModelized) modelized.parentModelized = parentModelized;
 
       return modelized;
+    },
+
+    // Converts model/collection instances to "modelized" representation.
+    // Useful for making instance-level modelizer methods work.
+    asModelized: function (obj) {
+      // Note: there is no `resourceName` param in "modelized"
+      // and its fine since this param is never read from
+      // `parentModelized` on `resolve()`
+
+      if (!obj) return null;
+
+      var isModelClass = modelClassHelper.isModelClass(obj);
+
+      // Model class or collection?
+      if (isModelClass || (_.isArray(obj) && obj.isCollection)) {
+        return {
+          modelClass: isModelClass ? obj : obj.modelClass,
+          modelInstanceOptions: { baseUrl: obj.baseUrl, urlPrefix: obj.urlPrefix },
+          isCollection: obj.isCollection
+        };
+      }
+
+      // Model instance?
+      if (obj instanceof defaultModelClass) {
+        return {
+          modelClass: obj._class,
+          modelInstanceOptions: _.clone(obj._initOptions),
+          resourceId: obj.idAttribute ? obj[obj.idAttribute] : null
+        };
+      }
+
+      return null;
     }
   };
 
@@ -1426,7 +1491,7 @@
         });
 
 
-        var modelModelizerMethods, collectionModelizerMethods;
+        var modelModelizerMethods, collectionModelizerMethods, instanceModelizerMethods;
 
         // "modelizer" itself is a helper utility that assists with
         // URL building (via urlBuilder) and helps with correct
@@ -1565,6 +1630,16 @@
           }
         };
 
+        instanceModelizerMethods = {
+          one: function (resourceName, resourceId, options) {
+            return new Modelizer(resourceName, resourceId, false, modelizeMetaResolver.asModelized(this), options);
+          },
+
+          many: function (resourceName, options) {
+            return new Modelizer(resourceName, null, true, modelizeMetaResolver.asModelized(this), options);
+          }
+        };
+
 
         // Base "Model" class
         
@@ -1579,6 +1654,15 @@
 
           if (options.parse) attrs = this.parse(attrs, options) || {};
           attrs = _extendModelAttrs({}, (this._modelClassMeta && this._modelClassMeta.defaults) || {}, attrs);
+
+          // Handling URLs
+          this.baseUrl = options.baseUrl || this.baseUrl || this._class.baseUrl;
+          this.urlPrefix = options.urlPrefix || this.urlPrefix || this._class.urlPrefix;
+
+          // Corner case: we need to set the model ID (or whatever `idAttribute` is)
+          // before property initializers are run, because complex sub-properties
+          // might rely on it for `urlPrefix` building
+          if (this.idAttribute && attrs[this.idAttribute]) this[this.idAttribute] = attrs[this.idAttribute];
 
           // Ensure all "complex" properties/accessors are set
           _runPropertyInitializers(this);
@@ -1600,9 +1684,6 @@
           // arrays of error messages.
           this.$modelErrors = null;
 
-          // Handling URLs
-          this.baseUrl = options.baseUrl || this.baseUrl || this._class.baseUrl;
-          this.urlPrefix = options.urlPrefix || this.urlPrefix || this._class.urlPrefix;
 
           // Init $loading state tracker
           this._loadingTracker = new PromiseTracker();
@@ -2023,6 +2104,9 @@
 
         });
 
+        // Attach instance modelizer methods to models
+        _extendWithGetSet(Model.prototype, instanceModelizerMethods);
+
 
         // Collection mixin
 
@@ -2387,6 +2471,9 @@
 
         };
 
+        // Attach instance modelizer methods to collections
+        _extendWithGetSet(collectionMixin, instanceModelizerMethods);
+
 
         // Collection initializer (like contructor function)
 
@@ -2421,8 +2508,8 @@
           collection._loadingTracker = new PromiseTracker();
 
           // Handling URLs
-          collection.baseUrl   = options.baseUrl   || (collection.modelClass && collection.modelClass.baseUrl)   || null;
-          collection.urlPrefix = options.urlPrefix || (collection.modelClass && collection.modelClass.urlPrefix) || null;
+          collection.baseUrl   = options.baseUrl   || (collection.modelClass && collection.modelClass.baseUrl)   || undefined;
+          collection.urlPrefix = options.urlPrefix || (collection.modelClass && collection.modelClass.urlPrefix) || undefined;
 
           // Note: `collectionMixin` methods work on `this.models`
           // property internally instead of just `this` to allow that
@@ -2568,6 +2655,9 @@
 
         // Make $request available on  both `Model` class and instances.
         Model.$request = Model.prototype.$request = $request;
+
+        // Add "instance" modelizer methods to a class for convenience
+        _extendWithGetSet(Model, instanceModelizerMethods);
 
         
         // "modelize" function itself (that will be exported)
