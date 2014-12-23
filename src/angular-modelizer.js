@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.22
+ * angular-modelizer v0.2.23
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1747,6 +1747,7 @@
             options = options || {};
 
             _.extend(this, attrs);
+            if (options.updateRemoteState) this._setRemoteState();
 
             return this;
           },
