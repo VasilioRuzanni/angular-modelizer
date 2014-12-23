@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.23
+ * angular-modelizer v0.2.24
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1997,7 +1997,7 @@
             for (var attr in attrs) {
               var val = attrs[attr],
                   isModel = thisAttrs[attr] instanceof Model,
-                  idAttribute = thisAttrs[attr].idAttribute,
+                  idAttribute = isModel && thisAttrs[attr].idAttribute,
                   isCollection = thisAttrs[attr] && thisAttrs[attr].$isCollection,
                   isDifferent = false;
 
@@ -2014,11 +2014,14 @@
                   // Lengths are the same if we get here so we can just check
                   // if every element of one array is in another. In case at least
                   // one isn't - they're immediately considered different.
-                  var colAttr = thisAttrs[attr];
+                  var colAttr = thisAttrs[attr],
+                      colItemIdAttribute;
 
                   // Note: Changed order considered "difference" too
+
                   for (var i = 0; i < colAttr.length; i++) {
-                    if (val[i][idAttribute] !== colAttr[i][idAttribute]) {
+                    colItemIdAttribute = (colAttr[i] && colAttr[i].idAttribute) || 'id';
+                    if (val[i][colItemIdAttribute] !== colAttr[i][colItemIdAttribute]) {
                       isDifferent = true;
                       break;
                     }
