@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.24
+ * angular-modelizer v0.2.25
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -2468,6 +2468,7 @@
           },
 
           clone: function (options) {
+            options = options || {};
             if (!options.baseUrl) options.baseUrl = this.baseUrl;
             if (!options.urlPrefix) options.urlPrefix = this.urlPrefix;
             return this.modelClass.$newCollection(this.models, options);

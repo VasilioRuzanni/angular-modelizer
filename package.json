@@ -1,6 +1,6 @@
 {
   "name": "angular-modelizer",
-  "version": "0.2.24",
+  "version": "0.2.25",
   "description": "Lightweight and simple models for AngularJS",
   "main": "./dist/angular-modelizer.min.js",
   "filename": "angular-modelizer.min.js",
@@ -15,7 +15,7 @@
     "node": " >= 0.10"
   },
   "devDependencies": {
-    "gulp": "~3.8.7",
+    "gulp": "~3.9.0",
     "gulp-concat": "^2.2.0",
     "gulp-jshint": "^1.5.5",
     "gulp-load-plugins": "^0.5.1",
