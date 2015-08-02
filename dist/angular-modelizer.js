@@ -1,5 +1,5 @@
 /* 
- * angular-modelizer v0.2.25
+ * angular-modelizer v0.2.26
  * 
  * Simple models to use with AngularJS
  * Loose port of Backbone models, a bit of Restangular and Ember Data.
@@ -1787,7 +1787,7 @@
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
               if (_.isFunction(options.onError)) options.onError.call(_this, res);
-              $q.reject(res);
+              return $q.reject(res);
             });
 
             if (this._loadingTracker) this._loadingTracker.addPromise(promise);
@@ -2172,7 +2172,7 @@
               return fullResponse ? res : (rawData ? res.data : _this);
             }, function (res) {
               if (_.isFunction(options.onError)) options.onError.call(_this, res);
-              $q.reject(res);
+              return $q.reject(res);
             });
 
             if (this._loadingTracker) this._loadingTracker.addPromise(promise);
@@ -2606,7 +2606,7 @@
               return fullResponse ? res : _future;
             }, function (res) {
               if (_.isFunction(options.onError)) options.onError.call(_this, res);
-              $q.reject(res);
+              return $q.reject(res);
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
@@ -2640,7 +2640,7 @@
               return fullResponse ? res : _future;
             }, function (res) {
               if (_.isFunction(options.onError)) options.onError.call(_this, res);
-              $q.reject(res);
+              return $q.reject(res);
             });
 
             if (_future._loadingTracker) _future._loadingTracker.addPromise(promise);
